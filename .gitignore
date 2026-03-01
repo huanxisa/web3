@@ -1,0 +1,35 @@
+# Git 备份目录（临时文件，不需要上传）
+.git_backup/
+
+# 操作系统文件
+.DS_Store
+Thumbs.db
+
+# Go 编译产物（二进制文件，无扩展名的可执行文件）
+bin/
+*.exe
+*.out
+ProjectBreakdown-NFTMarket/EasySwapSync/EasySwapSync
+golang-learning/lesson-04/examples/06-subscribe-logs/06-subscribe-logs
+golang-learning/lesson-04/examples/04-account-balance/04-account-balance
+golang-learning/lesson-04/examples/02-block-ops/02-block-ops
+
+# Foundry 依赖库和缓存（可通过 forge install 恢复）
+lib/
+cache/
+out/
+
+# Hardhat/Ignition 构建缓存（大型 JSON，可重新生成）
+ignition/deployments/*/build-info/
+
+# Node.js
+node_modules/
+
+# 环境变量
+.env
+.env.*
+.env.local
+
+# IDE
+.idea/
+.vscode/

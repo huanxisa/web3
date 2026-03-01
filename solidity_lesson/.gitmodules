@@ -1,0 +1,6 @@
+[submodule "lessonA12.1/study_code/foundry-demo/lib/openzeppelin-contracts"]
+	path = lessonA12.1/study_code/foundry-demo/lib/openzeppelin-contracts
+	url = https://github.com/OpenZeppelin/openzeppelin-contracts
+[submodule "lessonA12.1/study_code/foundry-demo/lib/forge-std"]
+	path = lessonA12.1/study_code/foundry-demo/lib/forge-std
+	url = https://github.com/foundry-rs/forge-std
