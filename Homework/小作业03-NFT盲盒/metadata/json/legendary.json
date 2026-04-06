@@ -1,0 +1,15 @@
+{
+  "name": "NFT Gem - Legendary",
+  "description": "An extraordinarily rare golden diamond. Only 2% chance to obtain. You are among the chosen few.",
+  "image": "ipfs://bafybeihktxqduubkm2m2zljkuwf7vfsalnkjc446gnvapvq37p6vlty7bm/legendary.svg",
+  "attributes": [
+    {
+      "trait_type": "Rarity",
+      "value": "Legendary"
+    },
+    {
+      "trait_type": "Drop Rate",
+      "value": "2%"
+    }
+  ]
+}

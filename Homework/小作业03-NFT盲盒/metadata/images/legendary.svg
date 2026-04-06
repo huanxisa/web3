@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1f1200"/>
+      <stop offset="100%" style="stop-color:#2e1a00"/>
+    </linearGradient>
+    <linearGradient id="gem" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffd700"/>
+      <stop offset="50%" style="stop-color:#ff8c00"/>
+      <stop offset="100%" style="stop-color:#ffd700"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="8" result="coloredBlur"/>
+      <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect width="400" height="400" fill="url(#bg)"/>
+  <!-- Outer aura -->
+  <ellipse cx="200" cy="190" rx="130" ry="145" fill="#ffd700" opacity="0.08"/>
+  <!-- Main gem -->
+  <polygon points="200,60 295,155 200,315 105,155" fill="url(#gem)" stroke="#ffe066" stroke-width="3" filter="url(#glow)"/>
+  <!-- Top facet -->
+  <polygon points="200,60 295,155 200,188 105,155" fill="#ffe57f" stroke="#fff" stroke-width="1" opacity="0.7"/>
+  <!-- Middle facets -->
+  <polygon points="200,60 265,140 200,165 135,140" fill="white" opacity="0.3"/>
+  <!-- Inner diamond -->
+  <polygon points="200,85 250,148 200,168 150,148" fill="white" opacity="0.15"/>
+  <!-- Sparkles scattered -->
+  <text x="55"  y="95"  font-family="Arial" font-size="26" fill="#ffd700" opacity="0.8"></text>
+  <text x="315" y="130" font-family="Arial" font-size="20" fill="#ffe57f" opacity="0.8">&</text>
+  <text x="65"  y="290" font-family="Arial" font-size="18" fill="#ff8c00" opacity="0.7">&</text>
+  <text x="305" y="300" font-family="Arial" font-size="22" fill="#ffd700" opacity="0.7"></text>
+  <text x="160" y="46"  font-family="Arial" font-size="16" fill="#ffe57f" opacity="0.6">&</text>
+  <text x="230" y="50"  font-family="Arial" font-size="12" fill="#ffd700" opacity="0.5"></text>
+  <!-- Label -->
+  <rect x="100" y="330" width="200" height="36" rx="18" fill="#ffd700" opacity="0.25"/>
+  <text x="200" y="353" font-family="Arial" font-size="16" font-weight="bold" fill="#ffd700" text-anchor="middle">LEGENDARY</text>
+  <text x="200" y="375" font-family="Arial" font-size="14" fill="#ff8c00" text-anchor="middle"></text>
+</svg>

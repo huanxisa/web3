@@ -1,0 +1,10 @@
+# 环境变量（含私钥，绝对不能提交）
+.env
+
+# Foundry 编译产物
+out/
+cache/
+
+# 广播记录（含交易详情，可选择性忽略）
+broadcast/*/31337/
+broadcast/*/11155111/run-latest.json

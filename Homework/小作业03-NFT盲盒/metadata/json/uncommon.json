@@ -1,0 +1,15 @@
+{
+  "name": "NFT Gem - Uncommon",
+  "description": "An uncommon gem with a vibrant green glow.",
+  "image": "ipfs://bafybeihktxqduubkm2m2zljkuwf7vfsalnkjc446gnvapvq37p6vlty7bm/uncommon.svg",
+  "attributes": [
+    {
+      "trait_type": "Rarity",
+      "value": "Uncommon"
+    },
+    {
+      "trait_type": "Drop Rate",
+      "value": "25%"
+    }
+  ]
+}

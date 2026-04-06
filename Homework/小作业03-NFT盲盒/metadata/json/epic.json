@@ -1,0 +1,15 @@
+{
+  "name": "NFT Gem - Epic",
+  "description": "An epic amethyst gem radiating mysterious purple energy. Only 8% chance to obtain.",
+  "image": "ipfs://bafybeihktxqduubkm2m2zljkuwf7vfsalnkjc446gnvapvq37p6vlty7bm/epic.svg",
+  "attributes": [
+    {
+      "trait_type": "Rarity",
+      "value": "Epic"
+    },
+    {
+      "trait_type": "Drop Rate",
+      "value": "8%"
+    }
+  ]
+}

@@ -60,13 +60,13 @@ contract LendingProtocol {
     ILiquidityPool public pool;    // 调用流动性池
     
     function borrow(uint256 amount) public {
-        // 1. 从价格预言机获取价格
+        // 1. 从价格预言机获取价格 首先获取代币合约的价格，但是获取价格之后price字段没有使用了？
         uint256 price = oracle.getPrice(address(token));
         
-        // 2. 从代币合约转移资金
+        // 2. 从代币合约转移资金 没做任何校验，就把token这个合约上面的发送者的账户转移到我的账户上 amount个代币，我理解这个一步是抵押
         token.transferFrom(msg.sender, address(this), amount);
         
-        // 3. 与流动性池交互
+        // 3. 与流动性池交互 这个步骤没明白
         pool.deposit(amount);
     }
 }
@@ -554,7 +554,6 @@ contract TokenSwap {
      */
     function swap(uint256 amountA) external {
         // 步骤1：检查合约是否有足够的tokenB用于交换
-        // 使用接口的view函数查询余额，不消耗Gas
         uint256 contractBalanceB = tokenB.balanceOf(address(this));
         require(contractBalanceB >= amountA, "Insufficient tokenB in contract");
         
@@ -589,7 +588,6 @@ contract TokenSwap {
         view 
         returns (uint256 balanceA, uint256 balanceB) 
     {
-        // 使用接口的view函数查询余额
         // view函数不修改状态，外部调用不消耗Gas
         balanceA = tokenA.balanceOf(address(this));
         balanceB = tokenB.balanceOf(address(this));
@@ -712,7 +710,6 @@ contract CallerContract {
     
     // 使用call调用view函数
     function callGetValue(address target) external view returns (uint256) {
-        // 调用view函数，不发送以太币
         (bool success, bytes memory returnData) = target.call(
             abi.encodeWithSignature("getValue()")
         );
@@ -813,46 +810,64 @@ contract LogicContract {
 }
 
 // 代理合约：存储数据，通过delegatecall调用逻辑合约
+// 【修正】原始代码错误：将 implementation 声明为普通状态变量（slot 0），
+//         导致与 LogicContract 的 slot 0（value）冲突。
+//         delegatecall 执行 setValue() 时会将 implementation 地址覆盖，合约直接损坏。
+//
+// 【修正方案】遵循 EIP-1967：将 implementation 单独存储在哈希高位槽，
+//         不占用 slot 0/1，使 ProxyContract 的 slot 布局与 LogicContract 完全对齐：
+//
+//   slot 0 → uint256 value   （与 LogicContract 的 value 对应）
+//   slot 1 → address owner   （与 LogicContract 的 owner 对应）
+//   keccak256("eip1967.proxy.implementation") - 1 → implementation 地址（高位，永不冲突）
 contract ProxyContract {
-    // 存储布局必须与LogicContract完全一致
-    address public implementation;  // 逻辑合约地址
-    uint256 public value;           // 与LogicContract的value对应
-    address public owner;            // 与LogicContract的owner对应
-    
+    // slot 0、slot 1：与 LogicContract 布局完全对齐，delegatecall 时共享同一份存储
+    uint256 public value;   // 与 LogicContract 的 value 对应
+    address public owner;   // 与 LogicContract 的 owner 对应
+
+    // EIP-1967 标准：implementation 地址存在哈希高位槽，不干扰 slot 0/1
+    // 只有读写 implementation 地址时才需要 assembly，其他逻辑均为普通 Solidity
+    bytes32 constant IMPLEMENTATION_SLOT =
+        bytes32(uint256(keccak256("eip1967.proxy.implementation")) - 1);
+
     event Upgraded(address indexed newImplementation);
-    
+
     constructor(address _implementation) {
-        implementation = _implementation;
-        owner = msg.sender;
+        _setImplementation(_implementation);
+        owner = msg.sender;  // 写入 slot 1，与 LogicContract 的 owner 对应
     }
-    
+
+    function _getImplementation() internal view returns (address impl) {
+        assembly {
+            impl := sload(IMPLEMENTATION_SLOT)
+        }
+    }
+
+    function _setImplementation(address newImpl) internal {
+        assembly {
+            sstore(IMPLEMENTATION_SLOT, newImpl)
+        }
+    }
+
     // fallback函数：将所有调用转发到逻辑合约
     fallback() external payable {
-        address impl = implementation;
+        address impl = _getImplementation();
         require(impl != address(0), "Implementation not set");
-        
-        // 使用delegatecall调用逻辑合约
-        // 逻辑合约的代码会在本合约的上下文中执行
+
+        // 使用delegatecall调用逻辑合约，逻辑合约的代码会在本合约的上下文中执行
         (bool success, bytes memory returnData) = impl.delegatecall(msg.data);
-        
-        if (!success) {
-            // 如果调用失败，回滚
-            assembly {
-                returndatacopy(0, 0, returndatasize())
-                revert(0, returndatasize())
-            }
-        }
-        
-        // 返回数据
+        require(success, "Delegatecall failed");
+
+        // 将返回数据原样返回给调用方
         assembly {
             return(add(returnData, 0x20), mload(returnData))
         }
     }
-    
-    // 升级函数：更换逻辑合约
+
+    // 升级函数：更换逻辑合约地址
     function upgrade(address newImplementation) external {
-        require(msg.sender == owner, "Not owner");
-        implementation = newImplementation;
+        require(msg.sender == owner, "Not owner");  // 直接读取 slot 1 的 owner
+        _setImplementation(newImplementation);
         emit Upgraded(newImplementation);
     }
 }
@@ -1458,11 +1473,17 @@ contract GasLimitBestPractice {
 
 Gas限制不能太低，否则正常的操作也无法完成。通常建议根据实际测试来确定合适的Gas限制值。
 
-**3. 考虑使用transfer或send**：
+**3. ~~考虑使用transfer或send~~**：
 
-对于简单的以太币转账，可以使用`transfer`或`send`，它们有固定的Gas限制（2300 Gas），更安全：
+> ⚠️ **【内容已过时，请勿采用】**
+> 本条建议基于 EIP-1884（2019年）之前的旧认知。
+> EIP-1884 上调了部分操作码的 Gas 成本后，2300 Gas 上限可能导致接收方合约的 `receive()` 执行失败，资金被永久锁死。
+> **现行业界共识：统一使用 `call{value:x}("")` 进行 ETH 转账，安全性靠 CEI 模式或 `nonReentrant` 保证，而不是靠 Gas 上限。**
+
+~~对于简单的以太币转账，可以使用`transfer`或`send`，它们有固定的Gas限制（2300 Gas），更安全：~~
 
 ```solidity
+// ❌ 已过时，不推荐
 contract TransferExample {
     mapping(address => uint256) public balances;
     
@@ -1470,8 +1491,20 @@ contract TransferExample {
         require(balances[msg.sender] >= amount, "Insufficient balance");
         balances[msg.sender] -= amount;
         
-        // transfer有固定的2300 Gas限制，更安全
+        // transfer 的 2300 Gas 上限在 EIP-1884 后可能导致资金永久锁死
         payable(msg.sender).transfer(amount);
+    }
+}
+
+// ✅ 推荐写法：使用 call，配合 CEI 模式防重入
+contract TransferExample {
+    mapping(address => uint256) public balances;
+
+    function withdraw(uint256 amount) external {
+        require(balances[msg.sender] >= amount, "Insufficient balance");
+        balances[msg.sender] -= amount;  // Effects：先改状态（CEI 模式）
+        (bool ok, ) = msg.sender.call{value: amount}("");  // Interactions：再转账
+        require(ok, "Transfer failed");
     }
 }
 ```

@@ -1,0 +1,11 @@
+{
+  "name": "NFT Mystery Box",
+  "description": "A sealed mystery box containing a hidden NFT gem. Reveal it to discover your rarity!",
+  "image": "ipfs://bafybeihktxqduubkm2m2zljkuwf7vfsalnkjc446gnvapvq37p6vlty7bm/blindbox.svg",
+  "attributes": [
+    {
+      "trait_type": "Status",
+      "value": "Unrevealed"
+    }
+  ]
+}

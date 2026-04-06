@@ -407,6 +407,41 @@ const { counter } = await networkHelpers.loadFixture(deployCounterFixture);
 
 这些变化使得Hardhat 3的测试代码更加现代化和易用。
 
+### 【Foundry对照】测试文件结构
+
+Foundry 测试文件用 Solidity 编写，无需 JavaScript 运行时。
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
+import {Test} from "forge-std/Test.sol";
+import {MyContract} from "../src/MyContract.sol";
+
+// 测试合约继承 Test 基类，Test 提供所有断言和 vm cheatcode
+contract MyContractTest is Test {
+    MyContract target;
+
+    // setUp 在每个 test_ 函数执行前自动调用（等同于 beforeEach）
+    function setUp() public {
+        target = new MyContract();
+    }
+
+    // 测试函数必须以 test_ 开头（或 testFuzz_）
+    function test_SomeFeature() public {
+        // ...
+    }
+}
+```
+
+| 概念 | Hardhat | Foundry |
+|------|---------|---------|
+| 测试语言 | TypeScript / JavaScript | Solidity |
+| 文件后缀 | `.test.ts` | `.t.sol` |
+| 测试基类 | 无（Mocha 框架） | `is Test` |
+| 前置准备 | `beforeEach(async () => {})` | `function setUp() public {}` |
+| 测试函数前缀 | `it("描述", ...)` | `function test_xxx()` |
+
 ---
 
 ## 4. Mocha测试结构详解
@@ -538,6 +573,31 @@ it("Should return a value", async function () {
 ```
 
 在Hardhat 3中，我们主要使用async/await方式，因为它更清晰易读。
+
+### 【Foundry对照】测试结构与钩子
+
+Foundry 没有 `describe`/`it` 层级，用函数命名规范代替分组：
+
+```solidity
+contract MyTest is Test {
+    // setUp = beforeEach，每个 test_ 函数前自动执行
+    function setUp() public { ... }
+
+    // 正常路径命名
+    function test_Deposit() public { ... }
+
+    // 预期 revert 的命名（社区规范）
+    function test_RevertWhen_NotOwner() public { ... }
+
+    // 模糊测试（Foundry 自动随机生成输入，默认运行 256 次）
+    function testFuzz_Deposit(uint256 amount) public { ... }
+
+    // 不变量测试（invariant_ 前缀，持续验证合约不变量）
+    function invariant_TotalSupplyAlwaysPositive() public { ... }
+}
+```
+
+Foundry 没有 `afterEach`，但可以用 `vm.snapshot()` / `vm.revertTo()` 手动管理状态。
 
 ---
 
@@ -674,6 +734,42 @@ expect(await counter.x()).to.equal(0);  // 0是number类型
 // 正确：使用bigint
 expect(await counter.x()).to.equal(0n); // 0n是bigint类型
 ```
+
+### 【Foundry对照】断言语法
+
+Foundry 断言是 Solidity 函数，无需处理 bigint 类型问题，链上数据类型原生匹配：
+
+```solidity
+// 相等
+assertEq(a, b);
+assertEq(a, b, "失败时显示的错误信息");
+
+// 大小比较
+assertGt(a, b);   // a > b
+assertGe(a, b);   // a >= b
+assertLt(a, b);   // a < b
+assertLe(a, b);   // a <= b
+
+// 布尔
+assertTrue(condition);
+assertFalse(condition);
+
+// 近似相等（处理浮点/精度误差时有用）
+assertApproxEqAbs(a, b, 1e15);        // |a - b| <= delta
+assertApproxEqRel(a, b, 1e16);        // 相对误差 <= 1%（1e18 = 100%）
+
+// 地址/bytes
+assertEq(address(a), address(b));
+assertEq(bytes32(x), bytes32(y));
+```
+
+| Chai (Hardhat) | Foundry |
+|---------------|---------|
+| `expect(a).to.equal(b)` | `assertEq(a, b)` |
+| `expect(a).to.be.gt(b)` | `assertGt(a, b)` |
+| `expect(a).to.be.true` | `assertTrue(a)` |
+| `expect(a).to.be.false` | `assertFalse(a)` |
+| 手动处理 bigint | 原生 uint256，无需转换 |
 
 ---
 
@@ -960,6 +1056,32 @@ it("Should revert on overflow", async function () {
 4. **使用描述性名称**：让测试意图清晰
 5. **保持测试独立**：每个测试应该能够独立运行
 
+### 【Foundry对照】合约部署和账户操作
+
+```solidity
+function setUp() public {
+    // 直接 new 部署，无需 ethers.getContractFactory
+    factory = new CrowdfundingFactory();
+
+    // makeAddr: 用字符串生成确定性测试地址（等同于 getSigners()）
+    address owner = makeAddr("owner");
+    address alice = makeAddr("alice");
+
+    // vm.prank: 下一次调用的 msg.sender 变成指定地址（等同于 connect(signer)）
+    vm.prank(owner);
+    factory.createCampaign(10 ether, 30);
+
+    // vm.startPrank / vm.stopPrank: 多次调用都用同一身份
+    vm.startPrank(alice);
+    factory.createCampaign(5 ether, 7);
+    factory.createCampaign(3 ether, 14);
+    vm.stopPrank();
+
+    // vm.deal: 直接设置 ETH 余额（等同于 setBalance）
+    vm.deal(alice, 20 ether);
+}
+```
+
 ---
 
 ## 8. 事件触发测试
@@ -1047,6 +1169,41 @@ it("Should query historical events", async function () {
 3. **事件名称区分大小写**：必须与合约中定义的一致
 4. **参数类型要匹配**：特别是注意bigint类型
 5. **查询历史事件时需要记录区块号**：用于指定查询范围
+
+### 【Foundry对照】事件测试
+
+```solidity
+// vm.expectEmit(checkTopic1, checkTopic2, checkTopic3, checkData)
+// true = 验证这个字段的值，false = 不验证
+
+// 基础用法：验证事件触发及参数
+vm.expectEmit(true, true, false, false);
+emit MyContract.StateChanged(State.Preparing, State.Active);
+campaign.start();  // 实际调用，Foundry 捕获并对比
+
+// 只验证事件触发，不验证参数值
+vm.expectEmit(false, false, false, false);
+emit MyContract.StateChanged(State.Preparing, State.Active);
+campaign.start();
+
+// 同一次调用触发多个事件：连续声明多次
+vm.expectEmit(true, false, false, true);
+emit MyContract.ContributionReceived(alice, 10 ether, 10 ether);
+vm.expectEmit(true, true, false, false);
+emit MyContract.StateChanged(State.Active, State.Success);
+campaign.contribute{value: 10 ether}();  // 触发两个事件
+
+// 严格来源验证（第5个参数：必须来自指定合约地址）
+vm.expectEmit(true, true, false, false, address(campaign));
+emit MyContract.StateChanged(State.Preparing, State.Active);
+campaign.start();
+```
+
+| Hardhat (Chai) | Foundry |
+|---------------|---------|
+| `expect(tx).to.emit(c, "EventName")` | `vm.expectEmit(...)` + `emit EventName(...)` |
+| `.withArgs(arg1, arg2)` | 四个 bool 参数选择性验证 |
+| 异步，需要 await | 同步，Solidity 原生 |
 
 ---
 
@@ -1156,6 +1313,42 @@ it("Should revert with panic on array out of bounds", async function () {
 - 所有require条件
 - 所有自定义错误
 - 所有可能的panic情况
+
+### 【Foundry对照】错误和回退测试
+
+```solidity
+// 验证任意 revert（不检查错误信息）
+vm.expectRevert();
+campaign.start();  // 应该 revert
+
+// 验证指定错误字符串（require 的错误信息）
+vm.expectRevert("Invalid state");
+campaign.start();
+
+// 验证自定义 Error
+vm.expectRevert(abi.encodeWithSelector(MyContract.MyCustomError.selector));
+campaign.start();
+
+// 验证自定义 Error 带参数
+vm.expectRevert(abi.encodeWithSelector(
+    MyContract.InsufficientBalance.selector,
+    100,   // 期望的参数值
+    200
+));
+campaign.withdraw();
+
+// 验证 Panic（stdError 来自 forge-std）
+import {stdError} from "forge-std/Test.sol";
+vm.expectRevert(stdError.arithmeticError);  // 算术溢出 (0x11)
+vm.expectRevert(stdError.indexOOBError);    // 数组越界 (0x32)
+```
+
+| Hardhat (Chai) | Foundry |
+|---------------|---------|
+| `expect(tx).to.be.reverted` | `vm.expectRevert()` |
+| `.to.revertedWith("msg")` | `vm.expectRevert("msg")` |
+| `.to.revertedWithCustomError(c, "Name")` | `vm.expectRevert(abi.encodeWithSelector(...))` |
+| `.to.revertedWithPanic(0x11)` | `vm.expectRevert(stdError.arithmeticError)` |
 
 ---
 
@@ -1308,6 +1501,43 @@ it("Should allow withdrawal after lock period", async function () {
 3. **区块操作会影响区块号**：可能影响依赖区块号的逻辑
 4. **时间戳必须是递增的**：不能设置比当前时间更早的时间戳
 
+### 【Foundry对照】时间旅行和区块操作
+
+```solidity
+// 快进时间（设置绝对 timestamp）
+vm.warp(block.timestamp + 7 days);
+
+// 快进区块号
+vm.roll(block.number + 100);
+
+// 设置当前区块 basefee
+vm.fee(100 gwei);
+
+// 设置 block.chainid
+vm.chainId(1);  // 模拟主网
+
+// 实际使用示例：测试时间锁
+function test_WithdrawAfterLock() public {
+    contract.lock();
+    vm.warp(block.timestamp + 7 days + 1);  // 跳过锁定期
+    contract.withdraw();  // 现在应该成功
+}
+
+function test_RevertWhen_WithdrawDuringLock() public {
+    contract.lock();
+    vm.expectRevert("Still locked");
+    contract.withdraw();  // 锁定期内应 revert
+}
+```
+
+| Hardhat | Foundry |
+|---------|---------|
+| `time.increase(seconds)` | `vm.warp(block.timestamp + seconds)` |
+| `time.increaseTo(timestamp)` | `vm.warp(timestamp)` |
+| `mine(n)` | `vm.roll(block.number + n)` |
+| `setNextBlockBaseFeePerGas(x)` | `vm.fee(x)` |
+| 异步，需要 await | 同步，无需 await |
+
 ---
 
 ## 11. 快照和恢复
@@ -1410,6 +1640,37 @@ async function deployVaultSystemFixture() {
 - **使用beforeEach**：每个测试都重新部署，100个测试可能需要几分钟
 - **使用loadFixture**：第一次部署，后续恢复快照，100个测试可能只需要几十秒
 
+### 【Foundry对照】快照与状态隔离
+
+Foundry 的 `setUp()` 在每个测试前自动重置状态，通常不需要手动快照。
+手动快照用于一个测试内部需要多次回滚的场景：
+
+```solidity
+function test_MultipleScenarios() public {
+    contract.deposit(100);
+
+    // 保存当前状态
+    uint256 snapshotId = vm.snapshot();
+
+    // 场景1
+    contract.withdraw(50);
+    assertEq(contract.balance(), 50);
+
+    // 恢复快照，回到 deposit 之后的状态
+    vm.revertTo(snapshotId);
+
+    // 场景2（从同一初始状态出发）
+    contract.withdraw(30);
+    assertEq(contract.balance(), 70);
+}
+```
+
+| Hardhat | Foundry |
+|---------|---------|
+| `await takeSnapshot()` | `vm.snapshot()` |
+| `await restoreSnapshot(id)` | `vm.revertTo(id)` |
+| `loadFixture` 避免重复部署 | `setUp()` 自动每次重置，无需手动 |
+
 ---
 
 ## 12. 测试覆盖率
@@ -1499,6 +1760,32 @@ npx hardhat test --coverage --report html
 - 特殊状态转换
 - 权限检查
 
+### 【Foundry对照】测试覆盖率
+
+```bash
+# 生成覆盖率报告
+forge coverage
+
+# 生成 LCOV 格式报告（可导入 IDE 可视化）
+forge coverage --report lcov
+
+# 生成 HTML 报告（需安装 genhtml）
+forge coverage --report lcov && genhtml lcov.info -o coverage-report
+```
+
+输出示例：
+```
+| File                          | % Lines  | % Stmts  | % Branches | % Funcs  |
+|-------------------------------|----------|----------|------------|----------|
+| src/CrowdfundingCampaign.sol  | 95.00%   | 93.75%   | 88.00%     | 100.00%  |
+| src/CrowdfundingFactory.sol   | 100.00%  | 100.00%  | 100.00%    | 100.00%  |
+```
+
+| Hardhat | Foundry |
+|---------|---------|
+| `npx hardhat coverage` | `forge coverage` |
+| solidity-coverage 插件 | 内置，无需插件 |
+
 ---
 
 ## 13. Gas报告
@@ -1587,6 +1874,45 @@ it("Should compare gas costs", async function () {
   console.log(`Method 1: ${gas1}, Method 2: ${gas2}`);
 });
 ```
+
+### 【Foundry对照】Gas 报告
+
+```bash
+# 运行测试并显示 Gas 报告（内置，无需插件）
+forge test --gas-report
+
+# 输出示例：
+# | src/CrowdfundingCampaign.sol:CrowdfundingCampaign contract |
+# |----------------------------|---------|---------|---------|---------|
+# | Function Name              | min     | avg     | median  | max     |
+# | contribute                 | 51234   | 65432   | 63000   | 80000   |
+# | withdraw                   | 28000   | 30000   | 30000   | 32000   |
+# | refund                     | 25000   | 27000   | 27000   | 29000   |
+
+# 运行单个测试查看详细 Gas
+forge test --match-test test_WithdrawByOwner -vvvv
+```
+
+Foundry 还支持在测试内精确测量 Gas：
+
+```solidity
+function test_GasComparison() public {
+    uint256 gasBefore = gasleft();
+    contract.method1();
+    uint256 gasUsed1 = gasBefore - gasleft();
+
+    gasBefore = gasleft();
+    contract.method2();
+    uint256 gasUsed2 = gasBefore - gasleft();
+
+    assertLt(gasUsed1, gasUsed2, "method1 should use less gas");
+}
+```
+
+| Hardhat | Foundry |
+|---------|---------|
+| `hardhat-gas-reporter` 插件 | 内置 `--gas-report`，无需插件 |
+| 手动获取 `receipt.gasUsed` | `gasleft()` 内联测量 |
 
 ---
 
@@ -1785,6 +2111,64 @@ const transferAmount = ethers.parseEther("100");
 const b1 = await token.balanceOf(owner.address);
 const amt = ethers.parseEther("100");
 ```
+
+### 【Foundry对照】测试最佳实践
+
+```solidity
+contract CrowdfundingTest is Test {
+
+    // ✅ 1. 用 makeAddr 生成语义清晰的测试地址
+    address owner = makeAddr("owner");
+    address alice = makeAddr("alice");
+
+    // ✅ 2. 常量提取，避免魔法数字
+    uint256 constant GOAL     = 10 ether;
+    uint256 constant DURATION = 30;
+
+    // ✅ 3. 抽取辅助函数，避免重复前置逻辑
+    function _startCampaign() internal {
+        vm.prank(owner);
+        campaign.start();
+    }
+
+    // ✅ 4. 命名规范：正常路径 test_xxx，预期失败 test_RevertWhen_xxx
+    function test_Contribute() public { ... }
+    function test_RevertWhen_ContributeAfterDeadline() public { ... }
+
+    // ✅ 5. 模糊测试：自动生成随机输入，发现边界问题
+    function testFuzz_ContributeAnyAmount(uint256 amount) public {
+        vm.assume(amount > 0 && amount <= 20 ether);  // 约束输入范围
+        _startCampaign();
+        vm.deal(alice, amount);
+        vm.prank(alice);
+        campaign.contribute{value: amount}();
+        assertEq(campaign.getContribution(alice), amount);
+    }
+
+    // ✅ 6. Foundry 独有：直接操作 storage 设置难以构造的状态
+    function test_StorageManipulation() public {
+        // 直接写入 slot 0 的值，绕过正常业务流程
+        vm.store(address(campaign), bytes32(0), bytes32(uint256(999 ether)));
+    }
+
+    // ✅ 7. fork 测试：在真实链状态下测试
+    // forge test --fork-url https://mainnet.infura.io/v3/KEY
+    function test_ForkMainnet() public {
+        // 此处可调用主网上的真实合约
+    }
+}
+```
+
+**Foundry 独有能力（Hardhat 没有或较难实现）**：
+
+| 能力 | 写法 |
+|------|------|
+| 模糊测试 | `testFuzz_xxx(uint256 x)` |
+| 不变量测试 | `invariant_xxx()` |
+| 直接写 storage | `vm.store(addr, slot, value)` |
+| 直接读 storage | `vm.load(addr, slot)` |
+| 替换合约代码 | `vm.etch(addr, bytecode)` |
+| fork 主网测试 | `vm.createFork("rpc_url")` |
 
 ---
 
