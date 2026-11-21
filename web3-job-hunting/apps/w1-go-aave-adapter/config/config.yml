@@ -1,0 +1,27 @@
+server:
+  port: 8080
+
+# Aave V3 在 Sepolia 测试网的地址（来自官方部署清单）
+# https://aave.com/docs/resources/addresses
+aave:
+  network: sepolia
+  rpc_url: ${SEPOLIA_RPC_URL:-https://eth-sepolia.g.alchemy.com/v2/demo}
+  pool_addresses_provider: "0x012bAC54348C0E635dCAc9D5FB99f06F24136C9A"
+  pool: "0x6Ae43d3271ff6888e7Fc43Fd7321a503ff738951"
+  ui_pool_data_provider: "0x69529987FA4A075D0C00B0128fa848dc9ebbE9CE"
+  tokens:
+    usdc: "0x94a9D9AC8a22534E3FaCa9F4e7F2E2cf85d5E4C8"
+    weth: "0xC558DBdd856501FCd9aaF1E62eae57A9F0629a3c"
+    dai:  "0xFF34B3d4Aee8ddCd6F9AFFFB6Fe49bD371b8a357"
+
+wallet:
+  private_key: ${WALLET_PRIVATE_KEY:-}
+  gas_price_multiplier: 1.2
+
+liquidation_listener:
+  enabled: true
+  start_block: latest
+  poll_interval_ms: 5000
+
+log:
+  level: debug

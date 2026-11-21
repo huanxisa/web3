@@ -1,0 +1,16 @@
+.venv/
+__pycache__/
+*.pyc
+data/jobs.db
+data/*.db-journal
+data/raw/
+raw/
+repos/
+.tmp/
+.idea/
+
+# Playwright 持久化登录态（含 cookie / localStorage，绝对不能提交）
+.playwright_profile/
+
+# 飞书等需要登录的页面 dump（含敏感数据）
+data/raw/feishu/

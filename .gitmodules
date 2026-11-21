@@ -1,0 +1,9 @@
+[submodule "Homework/大作业02-Pledge借贷/lib/openzeppelin-contracts"]
+	path = Homework/大作业02-Pledge借贷/lib/openzeppelin-contracts
+	url = https://github.com/OpenZeppelin/openzeppelin-contracts
+[submodule "Homework/大作业02-Pledge借贷/lib/chainlink-brownie-contracts"]
+	path = Homework/大作业02-Pledge借贷/lib/chainlink-brownie-contracts
+	url = https://github.com/smartcontractkit/chainlink-brownie-contracts
+[submodule "Homework/大作业01-NFT市场/contract/lib/forge-std"]
+	path = Homework/大作业01-NFT市场/contract/lib/forge-std
+	url = https://github.com/foundry-rs/forge-std

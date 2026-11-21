@@ -1,0 +1,6 @@
+[
+  {
+    "_comment": "合约编译后将 out/NFTAuction.sol/NFTAuction.json 的 abi 字段内容粘贴至此",
+    "_comment2": "然后运行: abigen --abi=abi/NFTAuction.json --pkg=contract --out=internal/contract/nftauction.go"
+  }
+]

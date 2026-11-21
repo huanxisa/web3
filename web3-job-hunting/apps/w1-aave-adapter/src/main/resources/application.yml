@@ -1,0 +1,43 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: aave-adapter
+
+# Aave V3 在 Sepolia 测试网的地址（来自官方部署清单）
+# https://aave.com/docs/resources/addresses
+aave:
+  network: sepolia
+  rpc-url: ${SEPOLIA_RPC_URL:https://eth-sepolia.g.alchemy.com/v2/demo}
+  pool-addresses-provider: 0x012bAC54348C0E635dCAc9D5FB99f06F24136C9A
+  pool: 0x6Ae43d3271ff6888e7Fc43Fd7321a503ff738951
+  ui-pool-data-provider: 0x69529987FA4A075D0C00B0128fa848dc9ebbE9CE
+  # 测试网常用 token
+  tokens:
+    usdc: 0x94a9D9AC8a22534E3FaCa9F4e7F2E2cf85d5E4C8
+    weth: 0xC558DBdd856501FCd9aaF1E62eae57A9F0629a3c
+    dai:  0xFF34B3d4Aee8ddCd6F9AFFFB6Fe49bD371b8a357
+
+# 操作员钱包（仅测试网，私钥放本地 .env，不要提交！）
+wallet:
+  private-key: ${WALLET_PRIVATE_KEY:}
+  # 估算 Gas 时的安全乘数
+  gas-price-multiplier: 1.2
+
+# 监听清算事件的起始区块（首次启动后会持久化最新值）
+liquidation-listener:
+  enabled: true
+  start-block: latest
+  poll-interval-ms: 5000
+
+logging:
+  level:
+    com.example.aaveadapter: DEBUG
+    org.web3j: INFO
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
